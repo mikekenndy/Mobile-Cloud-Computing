@@ -2,6 +2,7 @@ package com.example.lab03_mapsearch;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -17,9 +18,12 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -47,10 +51,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private LocationManager mManager;
     private EditText locationSearch;
-    private Button searchBtn;
+    private ImageButton searchBtn;
     private LinearLayout searchLayout;
 
-    private Boolean mLocPermissionGranted;
+    private Boolean currentLocFound = false;
     private double longitude = 151;
     private double latitude = -34;
 
@@ -63,10 +67,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         searchLayout = (LinearLayout) findViewById(R.id.search_layout);
         searchLayout.bringToFront();
         locationSearch = (EditText) findViewById(R.id.search_editText);
-        searchBtn = (Button) findViewById(R.id.search_BTN);
+        searchBtn = (ImageButton) findViewById(R.id.search_BTN);
         searchBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
                 onMapSearch(v);
             }
         });
@@ -76,10 +82,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         mManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
         getLocationPermission();
-
-
-
     }
 
     public void onMapSearch(View view)
@@ -93,16 +97,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             try
             {
                 addressList = geocoder.getFromLocationName(location, 1);
+                Address address = addressList.get(0);
+                LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+                mMap.addMarker(new MarkerOptions().position(latLng).title("Marker"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
             }
-            catch (IOException e)
+            catch (Exception e)
             {
-                e.printStackTrace();
+                Toast.makeText(this, "Invalid address", Toast.LENGTH_LONG).show();
             }
-            Address address = addressList.get(0);
-            LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-            mMap.addMarker(new MarkerOptions().position(latLng).title("Marker"));
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
         }
+        locationSearch.setText("");
     }
 
     private void getLocationPermission()
@@ -112,7 +117,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
         {
             mManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10, 0, this);
-            mLocPermissionGranted = true;
+            Boolean mLocPermissionGranted = true;
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -146,9 +151,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         longitude = location.getLongitude();
         latitude = location.getLatitude();
         LatLng loc = new LatLng(latitude, longitude);
-        mMap.addMarker(new MarkerOptions().position(loc).title("Marker in at your location"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(loc));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 12.0f));
+        if(!currentLocFound)
+        {
+            mMap.addMarker(new MarkerOptions().position(loc).title("Marker in at your location"));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(loc));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 12.0f));
+            currentLocFound = true;
+        }
+
 
     }
 

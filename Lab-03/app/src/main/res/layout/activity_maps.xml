@@ -19,10 +19,17 @@
             android:layout_weight="1"
             android:hint="Search..." />
 
-        <Button android:id="@+id/search_BTN"
+        <ImageButton android:id="@+id/search_BTN"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="4" />
+            android:src="@android:drawable/ic_menu_search"
+            android:layout_weight="4"/>
+
+        <!--<Button android:id="@+id/search_BTN"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:background="@android:drawable/btn_default"-->
+            <!--android:layout_weight="4" />-->
     </LinearLayout>
 
     <fragment
