@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="8dp"
+    tools:context=".StartActivity">
+
+    <TextView
+        android:id="@+id/start_titleTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter home address:"
+        android:textSize="20dp"
+        android:textColor="#000000"/>
+
+    <EditText
+        android:id="@+id/start_homeAddrEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/start_titleTextView"
+        android:hint="Type address here"/>
+
+    <Button
+        android:id="@+id/start_submitBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/start_homeAddrEditText"
+        android:layout_alignRight="@id/start_homeAddrEditText"
+        android:text="Submit"
+        android:textSize="20dp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#D3421D"/>
+</RelativeLayout>

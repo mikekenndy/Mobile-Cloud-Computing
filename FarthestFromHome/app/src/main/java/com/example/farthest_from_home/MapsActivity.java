@@ -1,8 +1,7 @@
-package com.example.lab03_mapsearch;
+package com.example.farthest_from_home;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,13 +11,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -27,22 +24,16 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.libraries.places.api.model.Place;
-import com.google.android.libraries.places.widget.Autocomplete;
-import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
-import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
-import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 
-import java.io.IOException;
-import java.util.Arrays;
+import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
 
@@ -50,9 +41,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private LocationManager mManager;
-    private EditText locationSearch;
-    private ImageButton searchBtn;
-    private LinearLayout searchLayout;
+    private ImageButton addBtn;
+    private LinearLayout addLayout;
+
+    private LatLng home;
+    private LatLng currentLocation;
 
     private Boolean currentLocFound = false;
     private double longitude = 151;
@@ -64,19 +57,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-        searchLayout = (LinearLayout) findViewById(R.id.search_layout);
-        searchLayout.bringToFront();
-        locationSearch = (EditText) findViewById(R.id.search_editText);
-        searchBtn = (ImageButton) findViewById(R.id.search_BTN);
-        searchBtn.setOnClickListener(new View.OnClickListener() {
+        addLayout = (LinearLayout) findViewById(R.id.add_layout);
+        addLayout.bringToFront();
+        addBtn = (ImageButton) findViewById(R.id.addBtn);
+        addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-                onMapSearch(v);
+                updateLocation(v);
+
+                Intent sendBack = new Intent(MapsActivity.this, MainActivity.class);
+                sendBack.putExtra("Distance", CalculationByDistance(home, currentLocation));
+                startActivity(sendBack);
             }
         });
-
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
@@ -86,10 +79,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getLocationPermission();
     }
 
-    public void onMapSearch(View view)
+    public void updateLocation(View view)
     {
-        String location = locationSearch.getText().toString();
-        List<Address> addressList = null;
+        Intent intent = getIntent();
+        String location = intent.getStringExtra("userAddress");
+        List<Address> addressList;
 
         if (location != null || !location.equals(""))
         {
@@ -98,16 +92,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             {
                 addressList = geocoder.getFromLocationName(location, 1);
                 Address address = addressList.get(0);
-                LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-                mMap.addMarker(new MarkerOptions().position(latLng).title("Marker"));
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                home = new LatLng(address.getLatitude(), address.getLongitude());
+                mMap.addMarker(new MarkerOptions().position(home).title("Marker"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(home));
+
+                Thread.sleep(2000);
             }
             catch (Exception e)
             {
                 Toast.makeText(this, "Invalid address", Toast.LENGTH_LONG).show();
             }
         }
-        locationSearch.setText("");
     }
 
     private void getLocationPermission()
@@ -148,12 +143,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     {
         longitude = location.getLongitude();
         latitude = location.getLatitude();
-        LatLng loc = new LatLng(latitude, longitude);
+        currentLocation = new LatLng(latitude, longitude);
         if(!currentLocFound)
         {
-            mMap.addMarker(new MarkerOptions().position(loc).title("Marker in at your location"));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(loc));
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 12.0f));
+            mMap.addMarker(new MarkerOptions().position(currentLocation).title("Marker in at your location"));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 12.0f));
             currentLocFound = true;
         }
     }
@@ -187,12 +182,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_COARSE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED)
+                    == PackageManager.PERMISSION_GRANTED)
             {
                 mMap.setMyLocationEnabled(true);
             }
         } else {
             mMap.setMyLocationEnabled(true);
+        }
+    }
+
+    public double CalculationByDistance(LatLng StartP, LatLng EndP) {
+        try
+        {
+            int Radius = 6371;// radius of earth in Km
+            double lat1 = StartP.latitude;
+            double lat2 = EndP.latitude;
+            double lon1 = StartP.longitude;
+            double lon2 = EndP.longitude;
+            double dLat = Math.toRadians(lat2 - lat1);
+            double dLon = Math.toRadians(lon2 - lon1);
+            double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                    + Math.cos(Math.toRadians(lat1))
+                    * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2)
+                    * Math.sin(dLon / 2);
+            double c = 2 * Math.asin(Math.sqrt(a));
+            double valueResult = Radius * c;
+            double km = valueResult / 1;
+            DecimalFormat newFormat = new DecimalFormat("####");
+            int kmInDec = Integer.valueOf(newFormat.format(km));
+            double meter = valueResult % 1000;
+            int meterInDec = Integer.valueOf(newFormat.format(meter));
+            Log.i("Radius Value", "" + valueResult + "   KM  " + kmInDec
+                    + " Meter   " + meterInDec);
+
+            return Radius * c;
+//            return 25.0;
+        }
+        catch (Exception e)
+        {
+            return -1.0;
         }
     }
 }
